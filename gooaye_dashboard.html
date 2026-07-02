@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股癌趨勢雷達儀表板</title>
+<style>
+  :root {
+    --bg-main: #0d0d0d;
+    --bg-card: #161616;
+    --border: #2e2e2e;
+    --text-main: #ffffff;
+    --text-sub: #c8c8c8;
+    --text-muted: #888;
+    --bullish: #00e676;
+    --watch: #ffb74d;
+    --reduce: #ff5252;
+    --exit: #78909c;
+    --accent: #e91e8c;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-main); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', sans-serif; padding-bottom: 60px; -webkit-font-smoothing: antialiased; font-size: 15px; }
+
+  /* ── 頂部 Header ── */
+  .header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 16px 28px; background: rgba(13,13,13,0.97); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); gap: 14px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 800; letter-spacing: -0.3px; color: #fff; }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #ff5252); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .updated-text { font-size: 12px; color: #666; }
+  .controls { flex: 1; max-width: 440px; }
+  .search-box { width: 100%; padding: 10px 18px; border-radius: 22px; border: 1px solid var(--border); background: #1a1a1a; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: #555; }
+
+  /* ── 篩選條 ── */
+  .filters { display: flex; gap: 8px; padding: 16px 28px 0; overflow-x: auto; scrollbar-width: none; flex-wrap: wrap; }
+  .filters::-webkit-scrollbar { display: none; }
+  .chip { background: var(--bg-card); border: 1px solid var(--border); color: #aaa; padding: 7px 16px; border-radius: 22px; font-size: 13px; cursor: pointer; transition: all 0.18s; white-space: nowrap; user-select: none; }
+  .chip:hover { color: #fff; border-color: #555; }
+  .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  .chip-bullish { border-color: rgba(0,230,118,0.5) !important; color: var(--bullish) !important; }
+  .chip-bullish.active { background: rgba(0,230,118,0.18) !important; border-color: var(--bullish) !important; }
+
+  /* ── 統計列 ── */
+  .stats-bar { display: flex; gap: 0; padding: 16px 28px 0; }
+  .stat { flex: 0 0 auto; text-align: center; padding-right: 28px; border-right: 1px solid var(--border); margin-right: 28px; }
+  .stat:last-child { border-right: none; }
+  .stat-val { font-size: 26px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+  .stat-lbl { font-size: 11px; color: #666; margin-top: 2px; }
+
+  /* ── 儀表板網格 ── */
+  .dashboard { padding: 22px 28px; display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 20px; }
+
+  /* ── 板塊卡片 ── */
+  .sector-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .sector-header { background: #1c1c1c; padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .sector-title { font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #fff; }
+  .sector-count { font-size: 12px; background: #2a2a2a; padding: 3px 10px; border-radius: 10px; color: #bbb; font-weight: 600; }
+  .sector-sent-summary { display: flex; gap: 7px; }
+  .sum-badge { font-size: 12px; padding: 3px 9px; border-radius: 6px; font-weight: 700; }
+
+  /* ── 資料表 ── */
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 12px; color: #777; padding: 10px 16px; border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
+  td { padding: 14px 16px; border-bottom: 1px solid #1e1e1e; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1f1f1f; }
+
+  .stock-cell { display: flex; flex-direction: column; gap: 4px; }
+  .symbol { font-size: 16px; font-weight: 800; color: #ffffff; letter-spacing: -0.2px; }
+  .sname { font-size: 14px; color: #ffffff; font-weight: 600; }
+
+  .sent-badge { display: inline-block; padding: 5px 12px; border-radius: 7px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+  .sent-看好 { background: rgba(0,230,118,0.18); color: #00e676; border: 1px solid rgba(0,230,118,0.4); }
+  .sent-觀察 { background: rgba(255,183,77,0.18); color: #ffb74d; border: 1px solid rgba(255,183,77,0.4); }
+  .sent-減碼 { background: rgba(255,82,82,0.18); color: #ff5252; border: 1px solid rgba(255,82,82,0.4); }
+  .sent-出場 { background: rgba(120,144,156,0.18); color: #90a4ae; border: 1px solid rgba(120,144,156,0.4); }
+
+  .ep-lbl { font-size: 12px; color: #777; margin-top: 4px; font-weight: 500; }
+  .price-val { font-size: 15px; font-weight: 700; color: #ffffff; }
+  .perf { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+  .pos { color: #00e676; }
+  .neg { color: #ff5252; }
+  .dash { color: #444; font-size: 14px; }
+
+  .tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; max-width: 180px; }
+  .tag { font-size: 11px; background: #222; color: #aaa; padding: 3px 8px; border-radius: 5px; border: 1px solid #333; white-space: nowrap; font-weight: 500; }
+
+  .hidden { display: none; }
+
+  /* ── 最新一集總結區塊 ── */
+  .summary-wrapper { padding: 20px 28px 0; }
+  .latest-summary-box { background: linear-gradient(135deg, #161616 0%, #1a1218 100%); border: 1px solid #3a2535; border-radius: 16px; overflow: hidden; }
+  .summary-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #2e2030; background: rgba(233,30,140,0.06); }
+  .ep-badge-large { background: var(--accent); color: #fff; font-size: 13px; font-weight: 800; padding: 5px 14px; border-radius: 8px; letter-spacing: 0.5px; }
+  .summary-title { font-size: 16px; font-weight: 700; color: #fff; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .market-col { padding: 16px 20px; }
+  .market-col:first-child { border-right: 1px solid #2e2030; }
+  .market-title { font-size: 14px; font-weight: 700; color: #bbb; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2a2a2a; }
+  .action-group { margin-bottom: 10px; }
+  .action-title { margin-bottom: 6px; }
+  .action-items { display: flex; flex-direction: column; gap: 5px; padding-left: 4px; }
+  .action-item { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+  .action-stock { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; }
+  .action-note { font-size: 12px; color: #888; }
+
+  /* ── 追蹤時長徽章 ── */
+  .ep-track { margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+  .ep-new { font-size: 10px; background: rgba(233,30,140,0.18); color: var(--accent); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(233,30,140,0.35); font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+  .ep-duration { font-size: 10px; background: #1e1e1e; color: #666; padding: 2px 7px; border-radius: 4px; border: 1px solid #2c2c2c; font-weight: 600; white-space: nowrap; }
+  .ep-duration-strong { color: #00c853 !important; border-color: rgba(0,200,83,0.35) !important; background: rgba(0,200,83,0.08) !important; }
+
+  /* ── 趨勢主軸 ── */
+  .pillars-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .pillars-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
+  .pillars-icon { width: 30px; height: 30px; background: linear-gradient(135deg, #1a237e, #283593); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .pillars-h-info .pillars-h-title { font-size: 15px; font-weight: 800; color: #fff; }
+  .pillars-h-info .pillars-h-sub { font-size: 11px; color: #555; margin-top: 2px; }
+  .pillar-list { display: flex; flex-direction: column; }
+  .pillar-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #191919; transition: background 0.15s; }
+  .pillar-item:last-child { border-bottom: none; }
+  .pillar-item:hover { background: #111; }
+  .pillar-left { display: flex; flex-direction: column; align-items: center; gap: 0; flex-shrink: 0; padding-top: 4px; }
+  .pillar-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .pillar-vline { width: 1px; background: #222; flex: 1; min-height: 18px; margin-top: 4px; }
+  .pillar-body { flex: 1; min-width: 0; }
+  .pillar-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+  .pillar-name { font-size: 14px; font-weight: 800; color: #fff; }
+  .pillar-status { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 5px; white-space: nowrap; }
+  .s持續中 { background: rgba(0,230,118,0.12); color: #00e676; border: 1px solid rgba(0,230,118,0.3); }
+  .s醞釀中 { background: rgba(255,183,77,0.12); color: #ffb74d; border: 1px solid rgba(255,183,77,0.3); }
+  .s觀察中 { background: rgba(255,152,0,0.12); color: #ff9800; border: 1px solid rgba(255,152,0,0.3); }
+  .s已出場 { background: rgba(120,144,156,0.1); color: #78909c; border: 1px solid rgba(120,144,156,0.25); }
+  .pillar-summary { font-size: 12px; color: #888; line-height: 1.65; margin-bottom: 7px; }
+  .pillar-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pillar-ep-range { font-size: 11px; color: #555; }
+  .pillar-stocks { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pillar-stk { font-size: 11px; background: #1c1c1c; color: #999; padding: 2px 7px; border-radius: 4px; border: 1px solid #2a2a2a; font-weight: 600; }
+
+  @media (max-width: 768px) {
+    .dashboard { grid-template-columns: 1fr; padding: 14px; }
+    .controls { max-width: 100%; }
+    .filters { padding: 10px 14px 0; }
+    .summary-wrapper { padding: 14px 14px 0; }
+    .summary-grid { grid-template-columns: 1fr; }
+    .market-col:first-child { border-right: none; border-bottom: 1px solid #2e2030; }
+    th:nth-child(4), td:nth-child(4) { display: none; }
+    th:nth-child(5), td:nth-child(5) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">🦆</div>
+    股癌趨勢雷達
+  </div>
+  <div class="controls">
+    <input type="text" class="search-box" id="searchInput"
+      placeholder="搜尋代號 / 名稱 / 標籤（如：NVDA、光通訊）..."
+      oninput="renderDashboard()">
+  </div>
+  <div class="header-right">
+    <div class="updated-text">更新：2026/07/02 收盤價｜EP675</div>
+  </div>
+</div>
+
+<div class="filters" id="filterBar">
+  <div class="chip active" data-filter="all"   onclick="setFilter(this)">全部市場</div>
+  <div class="chip"        data-filter="TW"    onclick="setFilter(this)">🇹🇼 台股</div>
+  <div class="chip"        data-filter="US"    onclick="setFilter(this)">🇺🇸 美股</div>
+  <div class="chip chip-bullish" data-filter="看好" onclick="setFilter(this)">🎯 僅看好</div>
+  <div class="chip"        data-filter="觀察"  onclick="setFilter(this)">👀 觀察</div>
+  <div class="chip"        data-filter="出場"  onclick="setFilter(this)">⚠️ 出場/減碼</div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val" id="st-total">—</div><div class="stat-lbl">追蹤</div></div>
+  <div class="stat"><div class="stat-val" id="st-bull">—</div><div class="stat-lbl">看好</div></div>
+  <div class="stat"><div class="stat-val" id="st-tw">—</div><div class="stat-lbl">台股</div></div>
+  <div class="stat"><div class="stat-val" id="st-us">—</div><div class="stat-lbl">美股</div></div>
+  <div class="stat"><div class="stat-val" id="st-sectors">—</div><div class="stat-lbl">板塊</div></div>
+</div>
+
+<div class="summary-wrapper">
+  <div id="trendPillarsWrapper"></div>
+  <div id="latestSummaryWrapper" style="margin-top:16px"></div>
+</div>
+
+<div class="dashboard" id="dashboard"></div>
+
+<script>
+const RAW_DATA = [{"symbol": "RKLB", "yfSymbol": "RKLB", "exchange": "US", "name": "Rocket Lab", "sector": "太空/火箭", "sentiment": "觀察", "episode": "EP670", "firstEp": "EP670", "tags": ["出貨期", "等不破底", "左側機會"], "pd": {"price": "$100.07", "p7": 17.16, "p30": -18.24, "pYTD": 43.45}}, {"symbol": "ASTS", "yfSymbol": "ASTS", "exchange": "US", "name": "AST SpaceMobile", "sector": "太空/火箭", "sentiment": "觀察", "episode": "EP670", "firstEp": "EP670", "tags": ["低軌衛星", "出貨期", "左側機會"], "pd": {"price": "$86.10", "p7": 26.6, "p30": -18.5, "pYTD": 18.55}}, {"symbol": "NET", "yfSymbol": "NET", "exchange": "US", "name": "Cloudflare", "sector": "軟體/資安", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["右側交易", "族群表態"], "pd": {"price": "$246.31", "p7": 10.22, "p30": -9.05, "pYTD": 24.94}}, {"symbol": "CRWD", "yfSymbol": "CRWD", "exchange": "US", "name": "CrowdStrike", "sector": "軟體/資安", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["右側交易", "財報優異"], "pd": {"price": "$193.18", "p7": 14.82, "p30": -1.21, "pYTD": 64.85}}, {"symbol": "OKTA", "yfSymbol": "OKTA", "exchange": "US", "name": "Okta", "sector": "軟體/資安", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["身份驗證", "成績優異"], "pd": {"price": "$140.46", "p7": 18.45, "p30": 0.48, "pYTD": 62.44}}, {"symbol": "SNOW", "yfSymbol": "SNOW", "exchange": "US", "name": "Snowflake", "sector": "軟體/資安", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["資料雲", "成績優異"], "pd": {"price": "$261.19", "p7": 15.6, "p30": -6.77, "pYTD": 19.07}}, {"symbol": "PLTR", "yfSymbol": "PLTR", "exchange": "US", "name": "Palantir", "sector": "企業AI", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["SpaceX類比", "先卡位"], "pd": {"price": "$125.73", "p7": 10.78, "p30": -21.74, "pYTD": -29.27}}, {"symbol": "CRM", "yfSymbol": "CRM", "exchange": "US", "name": "Salesforce", "sector": "企業AI", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["庫藏股", "企業軟體"], "pd": {"price": "$163.23", "p7": 6.85, "p30": -22.12, "pYTD": -38.38}}, {"symbol": "NOW", "yfSymbol": "NOW", "exchange": "US", "name": "ServiceNow", "sector": "企業AI", "sentiment": "看好", "episode": "EP666", "firstEp": "EP666", "tags": ["企業自動化", "成績優異"], "pd": {"price": "$105.80", "p7": 12.79, "p30": -22.13, "pYTD": -30.94}}, {"symbol": "NVDA", "yfSymbol": "NVDA", "exchange": "US", "name": "NVIDIA", "sector": "AI PC/晶片", "sentiment": "看好", "episode": "EP668", "firstEp": "EP668", "tags": ["RTX Spark", "地端AI省Token"], "pd": {"price": "$197.58", "p7": -0.71, "p30": -11.94, "pYTD": 5.94}}, {"symbol": "MU", "yfSymbol": "MU", "exchange": "US", "name": "Micron", "sector": "AI PC/晶片", "sentiment": "看好", "episode": "EP674", "firstEp": "EP668", "tags": ["記憶體暴力漲價", "AI伺服器BOM佔30%", "HBM"], "pd": {"price": "$1,032.28", "p7": -1.55, "p30": -0.31, "pYTD": 261.68}}, {"symbol": "2454", "yfSymbol": "2454.TW", "exchange": "TW", "name": "聯發科", "sector": "AI PC/晶片", "sentiment": "看好", "episode": "EP675", "firstEp": "EP668", "tags": ["IC設計族群全轉強", "需求導向漲價", "發哥破底翻"], "pd": {"price": "NT$4,310", "p7": 0.0, "p30": -4.75, "pYTD": 201.4}}, {"symbol": "2357", "yfSymbol": "2357.TW", "exchange": "TW", "name": "華碩", "sector": "AI PC/晶片", "sentiment": "觀察", "episode": "EP668", "firstEp": "EP668", "tags": ["ROG", "RTX受惠"], "pd": {"price": "NT$655", "p7": -12.43, "p30": -28.8, "pYTD": 19.53}}, {"symbol": "2301", "yfSymbol": "2301.TW", "exchange": "TW", "name": "光寶科", "sector": "AI PC/晶片", "sentiment": "減碼", "episode": "EP671", "firstEp": "EP671", "tags": ["轉倉至台達電", "調整配置"], "pd": {"price": "NT$217", "p7": 0.93, "p30": -4.62, "pYTD": 32.72}}, {"symbol": "AVGO", "yfSymbol": "AVGO", "exchange": "US", "name": "Broadcom", "sector": "光通訊/網通", "sentiment": "觀察", "episode": "EP673", "firstEp": "EP669", "tags": ["Wfish二合一晶片", "載板新機會", "族群轉弱"], "pd": {"price": "$369.34", "p7": -3.33, "p30": -19.7, "pYTD": 6.71}}, {"symbol": "MRVL", "yfSymbol": "MRVL", "exchange": "US", "name": "Marvell", "sector": "光通訊/網通", "sentiment": "減碼", "episode": "EP674", "firstEp": "EP669", "tags": ["CPU/ASIC走勢分化", "美股分化減碼"], "pd": {"price": "$272.05", "p7": -1.68, "p30": 23.98, "pYTD": 220.13}}, {"symbol": "2330", "yfSymbol": "2330.TW", "exchange": "TW", "name": "台積電", "sector": "晶圓/ASIC", "sentiment": "看好", "episode": "EP675", "firstEp": "EP665", "tags": ["再平衡結束轉拉尾", "法說會毛利期待", "進可攻退可守"], "pd": {"price": "NT$2,455", "p7": 2.72, "p30": 3.15, "pYTD": 58.39}}, {"symbol": "3443", "yfSymbol": "3443.TW", "exchange": "TW", "name": "創意", "sector": "晶圓/ASIC", "sentiment": "看好", "episode": "EP675", "firstEp": "EP665", "tags": ["IC設計族群全轉強", "ASIC算力", "走新多頭"], "pd": {"price": "NT$5,070", "p7": 4.54, "p30": 11.8, "pYTD": 138.59}}, {"symbol": "3008", "yfSymbol": "3008.TW", "exchange": "TW", "name": "大立光", "sector": "晶圓/ASIC", "sentiment": "看好", "episode": "EP669", "firstEp": "EP669", "tags": ["強勢共識", "流動性佳"], "pd": {"price": "NT$4,295", "p7": -16.84, "p30": 11.56, "pYTD": 72.14}}, {"symbol": "3661", "yfSymbol": "3661.TW", "exchange": "TW", "name": "世芯-KY", "sector": "晶圓/ASIC", "sentiment": "觀察", "episode": "EP675", "firstEp": "EP663", "tags": ["IC設計族群全轉強", "波動大", "等站穩均線"], "pd": {"price": "NT$4,525", "p7": 6.97, "p30": -1.09, "pYTD": 28.92}}, {"symbol": "2327", "yfSymbol": "2327.TW", "exchange": "TW", "name": "國巨", "sector": "被動元件", "sentiment": "看好", "episode": "EP675", "firstEp": "EP671", "tags": ["七月漲價信連發", "開營收近尾聲", "持續觀察"], "pd": {"price": "NT$1,055", "p7": -6.22, "p30": 24.7, "pYTD": 356.71}}, {"symbol": "2492", "yfSymbol": "2492.TW", "exchange": "TW", "name": "華新科", "sector": "被動元件", "sentiment": "看好", "episode": "EP675", "firstEp": "EP671", "tags": ["七月漲價信連發", "開營收近尾聲", "供應持續緊"], "pd": {"price": "NT$574", "p7": -4.17, "p30": 25.88, "pYTD": 390.6}}, {"symbol": "2472", "yfSymbol": "2472.TW", "exchange": "TW", "name": "立隆電", "sector": "被動元件", "sentiment": "看好", "episode": "EP675", "firstEp": "EP671", "tags": ["全面射宇宙", "七月漲價信連發", "開營收觀尾聲"], "pd": {"price": "NT$428", "p7": 7.68, "p30": 12.5, "pYTD": 299.53}}, {"symbol": "2308", "yfSymbol": "2308.TW", "exchange": "TW", "name": "台達電", "sector": "電源與散熱", "sentiment": "看好", "episode": "EP671", "firstEp": "EP671", "tags": ["從光寶轉倉加碼", "功率龍頭", "800VDC"], "pd": {"price": "NT$1,975", "p7": -0.25, "p30": -16.31, "pYTD": 105.09}}, {"symbol": "3653", "yfSymbol": "3653.TW", "exchange": "TW", "name": "健策", "sector": "電源與散熱", "sentiment": "減碼", "episode": "EP671", "firstEp": "EP671", "tags": ["減碼散熱", "調整配置"], "pd": {"price": "NT$3,380", "p7": -0.29, "p30": -15.29, "pYTD": 23.13}}, {"symbol": "3665", "yfSymbol": "3665.TW", "exchange": "TW", "name": "貿聯", "sector": "電源與散熱", "sentiment": "觀察", "episode": "EP663", "firstEp": "EP663", "tags": ["連接器", "AI伺服器"], "pd": {"price": "NT$2,005", "p7": 4.43, "p30": -8.66, "pYTD": 31.91}}, {"symbol": "3491", "yfSymbol": "3491.TWO", "exchange": "TW", "name": "昇達科", "sector": "衛星供應鏈", "sentiment": "出場", "episode": "EP670", "firstEp": "EP670", "tags": ["出貨期", "等不破底"], "pd": {"price": "NT$1,250", "p7": -6.72, "p30": -39.61, "pYTD": 84.09}}, {"symbol": "6285", "yfSymbol": "6285.TW", "exchange": "TW", "name": "啟碁", "sector": "衛星供應鏈", "sentiment": "出場", "episode": "EP670", "firstEp": "EP670", "tags": ["出貨期", "等不破底"], "pd": {"price": "NT$254", "p7": -1.17, "p30": -17.16, "pYTD": 156.06}}, {"symbol": "2313", "yfSymbol": "2313.TW", "exchange": "TW", "name": "華通", "sector": "衛星供應鏈", "sentiment": "出場", "episode": "EP670", "firstEp": "EP670", "tags": ["出貨期", "等不破底"], "pd": {"price": "NT$220", "p7": -5.58, "p30": -18.67, "pYTD": 136.31}}, {"symbol": "2881", "yfSymbol": "2881.TW", "exchange": "TW", "name": "富邦金", "sector": "金融", "sentiment": "看好", "episode": "EP671", "firstEp": "EP671", "tags": ["台灣資金充沛溢流", "已漲50%", "流動性充裕"], "pd": {"price": "NT$120", "p7": -12.13, "p30": 5.29, "pYTD": 24.35}}, {"symbol": "TSLA", "yfSymbol": "TSLA", "exchange": "US", "name": "Tesla", "sector": "EV/機器人", "sentiment": "出場", "episode": "EP674", "firstEp": "EP665", "tags": ["換倉SpaceX私募", "壓注馬斯克最佳方式"], "pd": {"price": "$425.30", "p7": 13.25, "p30": 2.27, "pYTD": -5.43}}, {"symbol": "GOOGL", "yfSymbol": "GOOGL", "exchange": "US", "name": "Google", "sector": "美股科技巨頭", "sentiment": "看好", "episode": "EP674", "firstEp": "EP674", "tags": ["降本增效", "AI整合", "接刀策略"], "pd": {"price": "$361.21", "p7": 4.61, "p30": -4.03, "pYTD": 15.4}}, {"symbol": "AAPL", "yfSymbol": "AAPL", "exchange": "US", "name": "Apple", "sector": "美股科技巨頭", "sentiment": "觀察", "episode": "EP674", "firstEp": "EP674", "tags": ["Edge AI", "記憶體漲價轉嫁", "接刀策略"], "pd": {"price": "$294.38", "p7": 0.44, "p30": -3.89, "pYTD": 8.28}}, {"symbol": "TXN", "yfSymbol": "TXN", "exchange": "US", "name": "德州儀器", "sector": "功率半導體/IDM", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["IDM漲價先行", "lead time拉長", "全球在動"], "pd": {"price": "$298.41", "p7": -1.55, "p30": 1.78, "pYTD": 72.0}}, {"symbol": "ON", "yfSymbol": "ON", "exchange": "US", "name": "安森美", "sector": "功率半導體/IDM", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["IDM漲價先行", "歐美缺貨", "全球在動"], "pd": {"price": "$94.63", "p7": -18.24, "p30": -21.74, "pYTD": 74.76}}, {"symbol": "STM", "yfSymbol": "STM", "exchange": "US", "name": "意法半導體", "sector": "功率半導體/IDM", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["IDM漲價先行", "歐美缺貨", "高壓Mosfet"], "pd": {"price": "$70.72", "p7": -1.56, "p30": 2.46, "pYTD": 172.63}}, {"symbol": "2481", "yfSymbol": "2481.TW", "exchange": "TW", "name": "強茂", "sector": "功率元件五雄", "sentiment": "看好", "episode": "EP672", "firstEp": "EP672", "tags": ["訂單出貨比1.4-1.5x", "能見度至明年中", "毛利率走升"], "pd": {"price": "NT$207", "p7": 7.81, "p30": 41.78, "pYTD": 158.43}}, {"symbol": "3675", "yfSymbol": "3675.TWO", "exchange": "TW", "name": "德微", "sector": "功率元件五雄", "sentiment": "看好", "episode": "EP672", "firstEp": "EP672", "tags": ["安世轉單效應", "報價喊漲二成", "已創新高"], "pd": {"price": "NT$408", "p7": 5.84, "p30": 10.12, "pYTD": 205.62}}, {"symbol": "5425", "yfSymbol": "5425.TWO", "exchange": "TW", "name": "台半", "sector": "功率元件五雄", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["二極體整流橋", "補漲型"], "pd": {"price": "NT$130", "p7": 1.97, "p30": 25.12, "pYTD": 150.97}}, {"symbol": "8261", "yfSymbol": "8261.TW", "exchange": "TW", "name": "富鼎", "sector": "功率元件五雄", "sentiment": "看好", "episode": "EP672", "firstEp": "EP672", "tags": ["轉型高壓Mosfet", "AI Server 1500-3000V"], "pd": {"price": "NT$327", "p7": 27.98, "p30": 95.22, "pYTD": 262.93}}, {"symbol": "6435", "yfSymbol": "6435.TWO", "exchange": "TW", "name": "大中", "sector": "功率元件五雄", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["中低壓MOSFET", "消費電子轉AI電源"], "pd": {"price": "NT$393", "p7": 11.03, "p30": 36.76, "pYTD": 263.43}}, {"symbol": "2303", "yfSymbol": "2303.TW", "exchange": "TW", "name": "聯電", "sector": "功率半導體代工", "sentiment": "看好", "episode": "EP672", "firstEp": "EP672", "tags": ["稼動率回升80%", "已發漲價信", "下半年全面調漲"], "pd": {"price": "NT$160", "p7": -10.36, "p30": 13.07, "pYTD": 224.87}}, {"symbol": "3707", "yfSymbol": "3707.TWO", "exchange": "TW", "name": "漢磊", "sector": "功率半導體代工", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["SiC 8吋試產", "Q4目標量產", "毛利率仍低"], "pd": {"price": "NT$87", "p7": 1.63, "p30": 6.47, "pYTD": 68.34}}, {"symbol": "6770", "yfSymbol": "6770.TW", "exchange": "TW", "name": "力積電", "sector": "功率半導體代工", "sentiment": "觀察", "episode": "EP672", "firstEp": "EP672", "tags": ["8吋稼動率受益", "成熟製程漲價"], "pd": {"price": "NT$74", "p7": -11.06, "p30": -13.85, "pYTD": 87.1}}];
+
+// ── 趨勢主軸（手動維護，反映近3-5集的市場敘事框架）──
+const TREND_PILLARS = [
+  {
+    title: "被動元件漲價循環", status: "觀察中", epStart: "EP671", epEnd: "EP675",
+    summary: "全面射宇宙，七月漲價信連發，機會外溢至T2/T3供應商。但進入「開營收階段」，一旦利多不漲、高檔爆量黑K即為減碼訊號，注意尾聲。",
+    stocks: ["2327", "2492", "2472"]
+  },
+  {
+    title: "功率元件／主動元件引爆", status: "持續中", epStart: "EP672", epEnd: "EP675",
+    summary: "過去兩週全面引爆，交期拉長+價格上升雙確認。歐美日系IDM聚焦高壓AI伺服器料號，中低階產能可能外拋台廠，外溢效應值得追蹤。",
+    stocks: ["2481", "8261", "2303", "TXN", "STM"]
+  },
+  {
+    title: "IC設計族群全面輪動", status: "醞釀中", epStart: "EP675", epEnd: "EP675",
+    summary: "需求導向漲價啟動（晶圓代工漲→IC設計轉嫁客戶），動能比成本驅動更強。聯發科/創意/世芯走出新多頭，選股找後續能持續榨出營收獲利者。",
+    stocks: ["2454", "3443", "3661"]
+  },
+  {
+    title: "記憶體暴力漲價", status: "持續中", epStart: "EP668", epEnd: "EP675",
+    summary: "AI伺服器BOM中記憶體佔比達30%，科技巨頭不計代價搶購HBM。消費電子疲但不影響資料中心訂單，漲價潮持續。",
+    stocks: ["MU"]
+  },
+  {
+    title: "衛星供應鏈 出場", status: "已出場", epStart: "EP670", epEnd: "EP670",
+    summary: "進入出貨期，型態轉弱，資金已輪動至漲價題材。等待底部築成後觀察再進場機會，現階段不追。",
+    stocks: ["3491", "6285", "2313"]
+  }
+];
+
+const SENT_SUM_STYLE = {
+  "看好": "color:var(--bullish);background:rgba(0,230,118,0.15)",
+  "觀察": "color:var(--watch);background:rgba(255,152,0,0.15)",
+  "減碼": "color:var(--reduce);background:rgba(255,82,82,0.15)",
+  "出場": "color:var(--exit);background:rgba(96,125,139,0.15)",
+};
+
+const LATEST_EP_NUM = Math.max(...RAW_DATA.map(d => parseInt(d.episode.replace('EP',''))));
+let currentFilter = 'all';
+
+function setFilter(el) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = el.dataset.filter;
+  renderDashboard();
+}
+
+function fmtPerf(v) {
+  if (v == null) return '<span class="dash perf">—</span>';
+  const cls = v >= 0 ? 'pos' : 'neg';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="perf ${cls}">${sign}${v.toFixed(2)}%</span>`;
+}
+
+function getTrackHtml(s) {
+  const firstEpNum = parseInt((s.firstEp || s.episode).replace('EP',''));
+  const epNum = parseInt(s.episode.replace('EP',''));
+  const diff = epNum - firstEpNum;
+  if (diff === 0 && epNum === LATEST_EP_NUM) {
+    return '<div class="ep-track"><span class="ep-new">本集新進</span></div>';
+  } else if (diff >= 1) {
+    const cls = diff >= 4 ? ' ep-duration-strong' : '';
+    return `<div class="ep-track"><span class="ep-duration${cls}">持續 ${diff+1} 集</span></div>`;
+  }
+  return '';
+}
+
+function renderDashboard() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const dash = document.getElementById('dashboard');
+
+  let data = RAW_DATA.filter(s => {
+    const matchSearch = !q ||
+      s.symbol.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q) ||
+      s.sector.toLowerCase().includes(q) ||
+      s.tags.some(t => t.toLowerCase().includes(q));
+    let matchFilter = true;
+    if (currentFilter === 'TW')   matchFilter = s.exchange === 'TW';
+    else if (currentFilter === 'US')   matchFilter = s.exchange === 'US';
+    else if (currentFilter === '看好') matchFilter = s.sentiment === '看好';
+    else if (currentFilter === '觀察') matchFilter = s.sentiment === '觀察';
+    else if (currentFilter === '出場') matchFilter = s.sentiment === '出場' || s.sentiment === '減碼';
+    return matchSearch && matchFilter;
+  });
+
+  const total = data.length;
+  const bull  = data.filter(s => s.sentiment === '看好').length;
+  const twCnt = data.filter(s => s.exchange === 'TW').length;
+  const usCnt = data.filter(s => s.exchange === 'US').length;
+  const groups = {};
+  data.forEach(s => { if (!groups[s.sector]) groups[s.sector] = []; groups[s.sector].push(s); });
+
+  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-bull').textContent    = bull;
+  document.getElementById('st-tw').textContent      = twCnt;
+  document.getElementById('st-us').textContent      = usCnt;
+  document.getElementById('st-sectors').textContent = Object.keys(groups).length;
+
+  if (total === 0) {
+    dash.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:60px">找不到符合條件的標的 🦆</div>';
+    return;
+  }
+
+  let html = '';
+  for (const [sector, stocks] of Object.entries(groups)) {
+    const sentMap = {};
+    stocks.forEach(s => { sentMap[s.sentiment] = (sentMap[s.sentiment]||0)+1; });
+    let sumHtml = '';
+    ['看好','觀察','減碼','出場'].forEach(k => {
+      if (sentMap[k]) sumHtml += `<span class="sum-badge" style="${SENT_SUM_STYLE[k]||''}">${sentMap[k]} ${k}</span>`;
+    });
+
+    html += `<div class="sector-group">
+  <div class="sector-header">
+    <div class="sector-title">${sector}<span class="sector-count">${stocks.length}</span></div>
+    <div class="sector-sent-summary">${sumHtml}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>標的</th><th>情緒&集數</th><th>現價</th>
+      <th>7D</th><th>30D</th><th>YTD</th>
+      <th>催化劑標籤</th>
+    </tr></thead>
+    <tbody>`;
+
+    stocks.forEach(s => {
+      const pd = s.pd || {};
+      const tagsHtml = s.tags.map(t => `<span class="tag">#${t}</span>`).join('');
+      const trackHtml = getTrackHtml(s);
+      html += `<tr>
+        <td><div class="stock-cell"><span class="symbol">${s.symbol}</span><span class="sname">${s.name}</span></div></td>
+        <td><div class="stock-cell"><span class="sent-badge sent-${s.sentiment}">${s.sentiment}</span><span class="ep-lbl">${s.episode}</span>${trackHtml}</div></td>
+        <td class="price-val">${pd.price || '—'}</td>
+        <td>${fmtPerf(pd.p7)}</td>
+        <td>${fmtPerf(pd.p30)}</td>
+        <td>${fmtPerf(pd.pYTD)}</td>
+        <td><div class="tags-wrap">${tagsHtml}</div></td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  }
+  dash.innerHTML = html;
+}
+
+function renderTrendPillars() {
+  const wrapper = document.getElementById('trendPillarsWrapper');
+  const DOT_COLOR = { "持續中": "#00e676", "醞釀中": "#ffb74d", "已出場": "#546e7a" };
+
+  let html = `<div class="pillars-box">
+    <div class="pillars-header">
+      <div class="pillars-icon">🧭</div>
+      <div class="pillars-h-info">
+        <div class="pillars-h-title">趨勢主軸雷達</div>
+        <div class="pillars-h-sub">近期持續追蹤的市場敘事（EP663–EP${LATEST_EP_NUM}）</div>
+      </div>
+    </div>
+    <div class="pillar-list">`;
+
+  TREND_PILLARS.forEach((p, i) => {
+    const epS = parseInt(p.epStart.replace('EP',''));
+    const epE = parseInt(p.epEnd.replace('EP',''));
+    const dur = epE - epS;
+    const durTxt = dur > 0 ? `連續追蹤 ${dur+1} 集` : '本週新主軸';
+    const epRangeTxt = dur > 0 ? `${p.epStart} → ${p.epEnd}` : p.epStart;
+    const stocksHtml = p.stocks.map(sym => {
+      const d = RAW_DATA.find(x => x.symbol === sym);
+      return `<span class="pillar-stk">${sym}${d ? ' ' + d.name : ''}</span>`;
+    }).join('');
+    const isLast = i === TREND_PILLARS.length - 1;
+
+    html += `<div class="pillar-item">
+      <div class="pillar-left">
+        <div class="pillar-dot" style="background:${DOT_COLOR[p.status]||'#555'}"></div>
+        ${!isLast ? '<div class="pillar-vline"></div>' : ''}
+      </div>
+      <div class="pillar-body">
+        <div class="pillar-name-row">
+          <span class="pillar-name">${p.title}</span>
+          <span class="pillar-status s${p.status}">${p.status}</span>
+        </div>
+        <div class="pillar-summary">${p.summary}</div>
+        <div class="pillar-meta">
+          <span class="pillar-ep-range">${epRangeTxt}｜${durTxt}</span>
+          <div class="pillar-stocks">${stocksHtml}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += `</div></div>`;
+  wrapper.innerHTML = html;
+}
+
+function renderLatestSummary() {
+  const wrapper = document.getElementById('latestSummaryWrapper');
+  const latestEpStr = 'EP' + LATEST_EP_NUM;
+  const latestData = RAW_DATA.filter(d => d.episode === latestEpStr);
+  const twData = latestData.filter(d => d.exchange === 'TW');
+  const usData = latestData.filter(d => d.exchange === 'US');
+
+  const genList = (data) => {
+    if (data.length === 0) return '<div class="action-note" style="color:#555;padding:8px 0;">本集無此市場更新</div>';
+    const grouped = data.reduce((acc, s) => { (acc[s.sentiment] = acc[s.sentiment]||[]).push(s); return acc; }, {});
+    let html = '';
+    ['看好','觀察','減碼','出場'].forEach(sent => {
+      if (!grouped[sent]) return;
+      html += `<div class="action-group"><div class="action-title"><span class="sent-badge sent-${sent}" style="padding:3px 8px;font-size:11px;">${sent}</span></div><div class="action-items">`;
+      grouped[sent].forEach(s => {
+        html += `<div class="action-item"><span class="action-stock">${s.name} (${s.symbol})</span><span class="action-note">— ${s.tags.slice(0,2).join('、')}</span></div>`;
+      });
+      html += `</div></div>`;
+    });
+    return html;
+  };
+
+  wrapper.innerHTML = `
+    <div class="latest-summary-box">
+      <div class="summary-header">
+        <span class="ep-badge-large">${latestEpStr}</span>
+        <span class="summary-title">最新一集動態</span>
+      </div>
+      <div class="summary-grid">
+        <div class="market-col"><div class="market-title">🇹🇼 台股動態</div>${genList(twData)}</div>
+        <div class="market-col"><div class="market-title">🇺🇸 美股動態</div>${genList(usData)}</div>
+      </div>
+    </div>`;
+}
+
+renderTrendPillars();
+renderLatestSummary();
+renderDashboard();
+</script>
+</body>
+</html>
