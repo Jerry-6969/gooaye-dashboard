@@ -138,8 +138,43 @@
   .pillar-stocks { display: flex; flex-wrap: wrap; gap: 4px; }
   .pillar-stk { font-size: 11px; background: #1c1c1c; color: #999; padding: 2px 7px; border-radius: 4px; border: 1px solid #2a2a2a; font-weight: 600; }
 
+
+  /* ── 主委操作紀錄 ── */
+  .ops-ep-group { padding: 12px 20px; border-bottom: 1px solid #191919; }
+  .ops-ep-group:last-child { border-bottom: none; }
+  .ops-ep-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .ops-date { font-size: 11px; color: #555; }
+  .ops-rows { display: flex; flex-direction: column; gap: 6px; }
+  .ops-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .op-badge { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 5px; white-space: nowrap; }
+  .op-加碼, .op-買進 { background: rgba(0,230,118,0.15); color: #00e676; border: 1px solid rgba(0,230,118,0.35); }
+  .op-減碼 { background: rgba(255,82,82,0.15); color: #ff5252; border: 1px solid rgba(255,82,82,0.35); }
+  .op-出場 { background: rgba(120,144,156,0.15); color: #90a4ae; border: 1px solid rgba(120,144,156,0.35); }
+  .op-轉倉 { background: rgba(255,183,77,0.15); color: #ffb74d; border: 1px solid rgba(255,183,77,0.35); }
+  .ops-stock { font-size: 13px; font-weight: 700; color: #fff; }
+  .ops-note { font-size: 12px; color: #777; }
+
+  /* ── 歷史歸檔 ── */
+  .archive-wrapper { padding: 0 28px 22px; }
+  .archive-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; }
+  .archive-box summary { cursor: pointer; padding: 14px 20px; font-size: 14px; font-weight: 700; color: #999; display: flex; align-items: center; gap: 10px; user-select: none; list-style: none; }
+  .archive-box summary::-webkit-details-marker { display: none; }
+  .archive-box summary::before { content: '▸'; color: #555; transition: transform 0.2s; }
+  .archive-box[open] summary::before { transform: rotate(90deg); }
+  .archive-count { font-size: 12px; background: #2a2a2a; padding: 2px 9px; border-radius: 8px; color: #bbb; }
+  .archive-hint { font-size: 11px; color: #555; font-weight: 500; }
+  .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 20px; padding: 0 20px 20px; }
+
+  /* ── 個股跳轉高亮 ── */
+  .pillar-stk { cursor: pointer; transition: all 0.15s; }
+  .pillar-stk:hover { color: #fff; border-color: var(--accent); }
+  tr.row-flash td { animation: rowflash 1.8s ease-out; }
+  @keyframes rowflash { 0% { background: rgba(233,30,140,0.4); } 100% { background: transparent; } }
+
   @media (max-width: 768px) {
     .dashboard { grid-template-columns: 1fr; padding: 14px; }
+    .archive-wrapper { padding: 0 14px 14px; }
+    .archive-grid { grid-template-columns: 1fr; }
     .controls { max-width: 100%; }
     .filters { padding: 10px 14px 0; }
     .summary-wrapper { padding: 14px 14px 0; }
@@ -187,9 +222,11 @@
 <div class="summary-wrapper">
   <div id="trendPillarsWrapper"></div>
   <div id="latestSummaryWrapper" style="margin-top:16px"></div>
+  <div id="opsLogWrapper" style="margin-top:16px"></div>
 </div>
 
 <div class="dashboard" id="dashboard"></div>
+<div class="archive-wrapper" id="archiveWrapper"></div>
 
 <script>
 const RAW_DATA = [{"symbol":"RKLB","yfSymbol":"RKLB","exchange":"US","name":"Rocket Lab","sector":"太空/火箭","sentiment":"觀察","episode":"EP670","firstEp":"EP670","tags":["出貨期","等不破底","左側機會"],"pd":{"price":"$81.04","p7":-19.33,"p30":-28.69,"pYTD":10.11}},{"symbol":"ASTS","yfSymbol":"ASTS","exchange":"US","name":"AST SpaceMobile","sector":"太空/火箭","sentiment":"觀察","episode":"EP670","firstEp":"EP670","tags":["低軌衛星","出貨期","左側機會"],"pd":{"price":"$73.32","p7":-13.87,"p30":-20.36,"pYTD":-15.64}},{"symbol":"NET","yfSymbol":"NET","exchange":"US","name":"Cloudflare","sector":"軟體/資安","sentiment":"看好","episode":"EP677","firstEp":"EP666","tags":["AI軟體輪動","Token成本下降受惠","EP677點名"],"pd":{"price":"$268.40","p7":10.72,"p30":8.32,"pYTD":41.17}},{"symbol":"CRWD","yfSymbol":"CRWD","exchange":"US","name":"CrowdStrike","sector":"軟體/資安","sentiment":"看好","episode":"EP677","firstEp":"EP666","tags":["Token成本下降受惠","資安軟體輪動","伺機佈局"],"pd":{"price":"$187.18","p7":-3.51,"p30":13.65,"pYTD":82.1}},{"symbol":"OKTA","yfSymbol":"OKTA","exchange":"US","name":"Okta","sector":"軟體/資安","sentiment":"看好","episode":"EP666","firstEp":"EP666","tags":["身份驗證","成績優異"],"pd":{"price":"$138.63","p7":-1.97,"p30":18.64,"pYTD":105.84}},{"symbol":"SNOW","yfSymbol":"SNOW","exchange":"US","name":"Snowflake","sector":"軟體/資安","sentiment":"看好","episode":"EP666","firstEp":"EP666","tags":["資料雲","成績優異"],"pd":{"price":"$261.45","p7":0.5,"p30":8.73,"pYTD":80.96}},{"symbol":"PLTR","yfSymbol":"PLTR","exchange":"US","name":"Palantir","sector":"企業AI","sentiment":"看好","episode":"EP677","firstEp":"EP666","tags":["Token成本下降受惠","資安軟體輪動","伺機佈局"],"pd":{"price":"$126.79","p7":-1.94,"p30":-7.09,"pYTD":-10.81}},{"symbol":"CRM","yfSymbol":"CRM","exchange":"US","name":"Salesforce","sector":"企業AI","sentiment":"看好","episode":"EP666","firstEp":"EP666","tags":["庫藏股","企業軟體"],"pd":{"price":"$163.32","p7":-1.68,"p30":-10.53,"pYTD":-8.04}},{"symbol":"NOW","yfSymbol":"NOW","exchange":"US","name":"ServiceNow","sector":"企業AI","sentiment":"看好","episode":"EP666","firstEp":"EP666","tags":["企業自動化","成績優異"],"pd":{"price":"$107.71","p7":1.31,"p30":-5.67,"pYTD":14.35}},{"symbol":"NVDA","yfSymbol":"NVDA","exchange":"US","name":"NVIDIA","sector":"AI PC/晶片","sentiment":"看好","episode":"EP678","firstEp":"EP668","tags":["連續紅K漲回季線","Blackwell訓練主力","舊GPU資產化"],"pd":{"price":"$210.96","p7":8.28,"p30":1.11,"pYTD":6.08}},{"symbol":"MU","yfSymbol":"MU","exchange":"US","name":"Micron","sector":"AI PC/晶片","sentiment":"看好","episode":"EP674","firstEp":"EP668","tags":["記憶體暴力漲價","AI伺服器BOM佔30%","HBM"],"pd":{"price":"$979.30","p7":0.38,"p30":3.16,"pYTD":114.65}},{"symbol":"2454","yfSymbol":"2454.TW","exchange":"TW","name":"聯發科","sector":"AI PC/晶片","sentiment":"看好","episode":"EP675","firstEp":"EP668","tags":["IC設計族群全轉強","需求導向漲價","發哥破底翻"],"pd":{"price":"NT$3925","p7":-6.44,"p30":-12.29,"pYTD":107.12}},{"symbol":"2357","yfSymbol":"2357.TW","exchange":"TW","name":"華碩","sector":"AI PC/晶片","sentiment":"觀察","episode":"EP668","firstEp":"EP668","tags":["ROG","RTX受惠"],"pd":{"price":"NT$684","p7":1.33,"p30":-19.53,"pYTD":16.13}},{"symbol":"2301","yfSymbol":"2301.TW","exchange":"TW","name":"光寶科","sector":"AI PC/晶片","sentiment":"減碼","episode":"EP676","firstEp":"EP671","tags":["資金轉至功率元件","持續減碼","調整配置"],"pd":{"price":"NT$214","p7":-2.51,"p30":-4.69,"pYTD":32.61}},{"symbol":"AVGO","yfSymbol":"AVGO","exchange":"US","name":"Broadcom","sector":"光通訊/網通","sentiment":"觀察","episode":"EP673","firstEp":"EP669","tags":["Wfish二合一晶片","載板新機會","族群轉弱"],"pd":{"price":"$399.97","p7":10.96,"p30":0.85,"pYTD":0.82}},{"symbol":"MRVL","yfSymbol":"MRVL","exchange":"US","name":"Marvell","sector":"光通訊/網通","sentiment":"減碼","episode":"EP674","firstEp":"EP669","tags":["CPU/ASIC走勢分化","美股分化減碼"],"pd":{"price":"$235.81","p7":-3.86,"p30":-18.36,"pYTD":75.19}},{"symbol":"2330","yfSymbol":"2330.TW","exchange":"TW","name":"台積電","sector":"晶圓/ASIC","sentiment":"看好","episode":"EP677","firstEp":"EP665","tags":["核心避險倉位","跌破季線前不動","長線多頭核心"],"pd":{"price":"NT$2415","p7":-1.23,"p30":4.77,"pYTD":15.83}},{"symbol":"3443","yfSymbol":"3443.TW","exchange":"TW","name":"創意","sector":"晶圓/ASIC","sentiment":"觀察","episode":"EP677","firstEp":"EP665","tags":["IC設計修正中","季線守穩再追","ASIC算力"],"pd":{"price":"NT$4340","p7":-13.89,"p30":0.7,"pYTD":29.75}},{"symbol":"3008","yfSymbol":"3008.TW","exchange":"TW","name":"大立光","sector":"晶圓/ASIC","sentiment":"看好","episode":"EP669","firstEp":"EP669","tags":["強勢共識","流動性佳"],"pd":{"price":"NT$3950","p7":-6.62,"p30":1.67,"pYTD":40.07}},{"symbol":"3661","yfSymbol":"3661.TW","exchange":"TW","name":"世芯-KY","sector":"晶圓/ASIC","sentiment":"觀察","episode":"EP677","firstEp":"EP663","tags":["IC設計修正中","季線守穩再追","波動大"],"pd":{"price":"NT$4210","p7":-9.46,"p30":-0.94,"pYTD":21.15}},{"symbol":"2327","yfSymbol":"2327.TW","exchange":"TW","name":"國巨","sector":"被動元件","sentiment":"觀察","episode":"EP678","firstEp":"EP671","tags":["主委減碼轉功率","漲價成功但股價修正","觀察法人回補"],"pd":{"price":"NT$900","p7":-13.88,"p30":8.96,"pYTD":176.92}},{"symbol":"2492","yfSymbol":"2492.TW","exchange":"TW","name":"華新科","sector":"被動元件","sentiment":"觀察","episode":"EP677","firstEp":"EP671","tags":["進入修正期-21%","開營收尾聲","觀察法人是否回補"],"pd":{"price":"NT$466","p7":-17.32,"p30":5.8,"pYTD":213.47}},{"symbol":"2472","yfSymbol":"2472.TW","exchange":"TW","name":"立隆電","sector":"被動元件","sentiment":"觀察","episode":"EP677","firstEp":"EP671","tags":["進入修正期-17%","開營收尾聲","觀察法人是否回補"],"pd":{"price":"NT$376","p7":-11.53,"p30":0.94,"pYTD":110.06}},{"symbol":"2308","yfSymbol":"2308.TW","exchange":"TW","name":"台達電","sector":"電源與散熱","sentiment":"看好","episode":"EP671","firstEp":"EP671","tags":["從光寶轉倉加碼","功率龍頭","800VDC"],"pd":{"price":"NT$1880","p7":-9.4,"p30":-22.15,"pYTD":1.9}},{"symbol":"3653","yfSymbol":"3653.TW","exchange":"TW","name":"健策","sector":"電源與散熱","sentiment":"減碼","episode":"EP671","firstEp":"EP671","tags":["減碼散熱","調整配置"],"pd":{"price":"NT$3205","p7":-6.29,"p30":-18.55,"pYTD":-26.83}},{"symbol":"3665","yfSymbol":"3665.TW","exchange":"TW","name":"貿聯","sector":"電源與散熱","sentiment":"觀察","episode":"EP663","firstEp":"EP663","tags":["連接器","AI伺服器"],"pd":{"price":"NT$1865","p7":-6.52,"p30":-13.46,"pYTD":-22.13}},{"symbol":"3491","yfSymbol":"3491.TWO","exchange":"TW","name":"昇達科","sector":"衛星供應鏈","sentiment":"出場","episode":"EP670","firstEp":"EP670","tags":["出貨期","等不破底"],"pd":{"price":"NT$1270","p7":-5.22,"p30":-29.83,"pYTD":-27.43}},{"symbol":"6285","yfSymbol":"6285.TW","exchange":"TW","name":"啟碁","sector":"衛星供應鏈","sentiment":"出場","episode":"EP670","firstEp":"EP670","tags":["出貨期","等不破底"],"pd":{"price":"NT$260","p7":0.97,"p30":-9.08,"pYTD":-2.43}},{"symbol":"2313","yfSymbol":"2313.TW","exchange":"TW","name":"華通","sector":"衛星供應鏈","sentiment":"出場","episode":"EP670","firstEp":"EP670","tags":["出貨期","等不破底"],"pd":{"price":"NT$223","p7":-2.83,"p30":-19.2,"pYTD":-14.23}},{"symbol":"2881","yfSymbol":"2881.TW","exchange":"TW","name":"富邦金","sector":"金融","sentiment":"看好","episode":"EP671","firstEp":"EP671","tags":["台灣資金充沛溢流","已漲50%","流動性充裕"],"pd":{"price":"NT$124","p7":2.89,"p30":-0.4,"pYTD":41.64}},{"symbol":"TSLA","yfSymbol":"TSLA","exchange":"US","name":"Tesla","sector":"EV/機器人","sentiment":"出場","episode":"EP674","firstEp":"EP665","tags":["換倉SpaceX私募","壓注馬斯克最佳方式"],"pd":{"price":"$407.76","p7":3.64,"p30":-0.29,"pYTD":4.03}},{"symbol":"GOOGL","yfSymbol":"GOOGL","exchange":"US","name":"Google","sector":"美股科技巨頭","sentiment":"看好","episode":"EP674","firstEp":"EP674","tags":["降本增效","AI整合","接刀策略"],"pd":{"price":"$357.18","p7":-0.76,"p30":-1.69,"pYTD":5.95}},{"symbol":"AAPL","yfSymbol":"AAPL","exchange":"US","name":"Apple","sector":"美股科技巨頭","sentiment":"觀察","episode":"EP674","firstEp":"EP674","tags":["Edge AI","記憶體漲價轉嫁","接刀策略"],"pd":{"price":"$315.32","p7":2.17,"p30":4.57,"pYTD":18.35}},{"symbol":"TXN","yfSymbol":"TXN","exchange":"US","name":"德州儀器","sector":"功率半導體/IDM","sentiment":"觀察","episode":"EP672","firstEp":"EP672","tags":["IDM漲價先行","lead time拉長","全球在動"],"pd":{"price":"$311.46","p7":6.27,"p30":7.07,"pYTD":44.0}},{"symbol":"ON","yfSymbol":"ON","exchange":"US","name":"安森美","sector":"功率半導體/IDM","sentiment":"觀察","episode":"EP672","firstEp":"EP672","tags":["IDM漲價先行","歐美缺貨","全球在動"],"pd":{"price":"$95.96","p7":5.2,"p30":-20.63,"pYTD":32.49}},{"symbol":"STM","yfSymbol":"STM","exchange":"US","name":"意法半導體","sector":"功率半導體/IDM","sentiment":"觀察","episode":"EP672","firstEp":"EP672","tags":["IDM漲價先行","歐美缺貨","高壓Mosfet"],"pd":{"price":"$71.46","p7":4.55,"p30":-4.73,"pYTD":75.66}},{"symbol":"2481","yfSymbol":"2481.TW","exchange":"TW","name":"強茂","sector":"功率元件五雄","sentiment":"看好","episode":"EP678","firstEp":"EP672","tags":["MOSFET稼動率滿載","全面漲價","主委功率首選"],"pd":{"price":"NT$213","p7":2.9,"p30":45.89,"pYTD":98.14}},{"symbol":"3675","yfSymbol":"3675.TWO","exchange":"TW","name":"德微","sector":"功率元件五雄","sentiment":"看好","episode":"EP672","firstEp":"EP672","tags":["安世轉單效應","報價喊漲二成","已創新高"],"pd":{"price":"NT$396","p7":-5.15,"p30":27.13,"pYTD":100.0}},{"symbol":"5425","yfSymbol":"5425.TWO","exchange":"TW","name":"台半","sector":"功率元件五雄","sentiment":"觀察","episode":"EP672","firstEp":"EP672","tags":["二極體整流橋","補漲型"],"pd":{"price":"NT$130","p7":-0.38,"p30":40.78,"pYTD":118.23}},{"symbol":"8261","yfSymbol":"8261.TW","exchange":"TW","name":"富鼎","sector":"功率元件五雄","sentiment":"看好","episode":"EP678","firstEp":"EP672","tags":["買爆首選","高壓Mosfet","月漲97%"],"pd":{"price":"NT$325","p7":1.56,"p30":97.57,"pYTD":180.17}},{"symbol":"6435","yfSymbol":"6435.TWO","exchange":"TW","name":"大中","sector":"功率元件五雄","sentiment":"觀察","episode":"EP677","firstEp":"EP672","tags":["底部買進觀察","EP677再度確認","中低壓MOSFET"],"pd":{"price":"NT$375","p7":-1.83,"p30":35.87,"pYTD":128.66}},{"symbol":"2303","yfSymbol":"2303.TW","exchange":"TW","name":"聯電","sector":"功率半導體代工","sentiment":"看好","episode":"EP672","firstEp":"EP672","tags":["稼動率回升80%","已發漲價信","下半年全面調漲"],"pd":{"price":"NT$156","p7":-8.5,"p30":22.35,"pYTD":128.4}},{"symbol":"3707","yfSymbol":"3707.TWO","exchange":"TW","name":"漢磊","sector":"功率半導體代工","sentiment":"觀察","episode":"EP672","firstEp":"EP672","tags":["SiC 8吋試產","Q4目標量產","毛利率仍低"],"pd":{"price":"NT$80","p7":-12.64,"p30":5.58,"pYTD":45.34}},{"symbol":"6770","yfSymbol":"6770.TW","exchange":"TW","name":"力積電","sector":"功率半導體代工","sentiment":"觀察","episode":"EP672","firstEp":"EP672","tags":["8吋稼動率受益","成熟製程漲價"],"pd":{"price":"NT$71","p7":-3.13,"p30":-0.56,"pYTD":31.67}},{"symbol":"3711","yfSymbol":"3711.TW","exchange":"TW","name":"日月光投控","sector":"封測/後段製程","sentiment":"觀察","episode":"EP677","firstEp":"EP676","tags":["封測報價漲30-50%","具備挑選客戶定價權","AI需求外溢受惠"],"pd":{"price":"NT$677","p7":-0.73,"p30":18.98,"pYTD":50.28}},{"symbol":"2449","yfSymbol":"2449.TW","exchange":"TW","name":"京元電子","sector":"封測/後段製程","sentiment":"觀察","episode":"EP677","firstEp":"EP676","tags":["封測報價漲30-50%","成熟製程封測龍頭","交期極端拉長"],"pd":{"price":"NT$308","p7":-7.91,"p30":6.01,"pYTD":8.82}},{"symbol":"6138","yfSymbol":"6138.TWO","exchange":"TW","name":"茂達","sector":"電源管理IC","sentiment":"觀察","episode":"EP676","firstEp":"EP676","tags":["國巨集團布局","主被動協同設計","電源管理IC"],"pd":{"price":"NT$376","p7":-6.0,"p30":20.9,"pYTD":68.23}},{"symbol":"META","yfSymbol":"META","exchange":"US","name":"Meta Platforms","sector":"美股科技巨頭","sentiment":"看好","episode":"EP678","firstEp":"EP678","tags":["加倍下注AI算力","GPU資產化出租","算力定價趨穩"],"pd":{"price":"$669.21","p7":14.81,"p30":14.32,"pYTD":-0.35}},{"symbol":"ADI","yfSymbol":"ADI","exchange":"US","name":"Analog Devices","sector":"功率半導體/IDM","sentiment":"觀察","episode":"EP678","firstEp":"EP678","tags":["類比IC漲價信","缺貨擴張","毛利率改善"],"pd":{"price":"$395.65","p7":4.9,"p30":-2.04,"pYTD":13.71}},{"symbol":"2351","yfSymbol":"2351.TW","exchange":"TW","name":"順德","sector":"導線架","sentiment":"看好","episode":"EP678","firstEp":"EP678","tags":["導線架缺貨","交期拉長至7-8個月","漲價10-20%"],"pd":{"price":"NT$200","p7":-3.61,"p30":3.9,"pYTD":63.93}},{"symbol":"5285","yfSymbol":"5285.TW","exchange":"TW","name":"界霖","sector":"導線架","sentiment":"看好","episode":"EP678","firstEp":"EP678","tags":["導線架缺貨","漲價題材","獲利有望超預期"],"pd":{"price":"NT$96","p7":-0.93,"p30":9.97,"pYTD":84.62}},{"symbol":"6525","yfSymbol":"6525.TW","exchange":"TW","name":"捷敏-KY","sector":"封測/後段製程","sentiment":"看好","episode":"EP678","firstEp":"EP677","tags":["主委持續加碼","功率元件封測","月漲67%"],"pd":{"price":"NT$200","p7":9.02,"p30":67.65,"pYTD":125.93}}];
@@ -248,6 +285,34 @@ const TREND_PILLARS = [
   }
 ];
 
+// ── 主委操作紀錄（節目中提及的實際加減碼，依集數倒序）──
+const OPS_LOG = [
+  { ep: "EP678", date: "2026/07/11", actions: [
+    { stock: "捷敏-KY (6525)", type: "加碼", note: "功率元件封測，連兩集加碼" },
+    { stock: "群聯 (8299)", type: "出場", note: "反彈出掉" },
+    { stock: "國巨 (2327)", type: "減碼", note: "資金轉向功率半導體" }
+  ]},
+  { ep: "EP677", date: "2026/07/08", actions: [
+    { stock: "大中 (6435)", type: "買進", note: "底部買進" },
+    { stock: "捷敏-KY (6525)", type: "買進", note: "底部買進" },
+    { stock: "國巨 (2327)", type: "加碼", note: "逢低加碼搶反彈" },
+    { stock: "群聯 (8299)", type: "買進", note: "反彈交易" }
+  ]},
+  { ep: "EP676", date: "2026/07/04", actions: [
+    { stock: "強茂 (2481)", type: "加碼", note: "功率元件買爆" },
+    { stock: "富鼎 (8261)", type: "加碼", note: "買爆首選" },
+    { stock: "光寶科 (2301)", type: "減碼", note: "資金轉至功率元件" }
+  ]},
+  { ep: "EP674", date: "2026/06/27", actions: [
+    { stock: "Tesla (TSLA)", type: "出場", note: "換倉 SpaceX 私募" },
+    { stock: "Marvell (MRVL)", type: "減碼", note: "美股分化減碼" }
+  ]},
+  { ep: "EP671", date: "2026/06/17", actions: [
+    { stock: "台達電 (2308)", type: "轉倉", note: "從光寶科轉倉加碼" },
+    { stock: "健策 (3653)", type: "減碼", note: "減碼散熱" }
+  ]}
+];
+
 const SENT_SUM_STYLE = {
   "看好": "color:var(--bullish);background:rgba(0,230,118,0.15)",
   "觀察": "color:var(--watch);background:rgba(255,152,0,0.15)",
@@ -285,43 +350,9 @@ function getTrackHtml(s) {
   return '';
 }
 
-function renderDashboard() {
-  const q = document.getElementById('searchInput').value.toLowerCase().trim();
-  const dash = document.getElementById('dashboard');
-
-  let data = RAW_DATA.filter(s => {
-    const matchSearch = !q ||
-      s.symbol.toLowerCase().includes(q) ||
-      s.name.toLowerCase().includes(q) ||
-      s.sector.toLowerCase().includes(q) ||
-      s.tags.some(t => t.toLowerCase().includes(q));
-    let matchFilter = true;
-    if (currentFilter === 'TW')   matchFilter = s.exchange === 'TW';
-    else if (currentFilter === 'US')   matchFilter = s.exchange === 'US';
-    else if (currentFilter === '看好') matchFilter = s.sentiment === '看好';
-    else if (currentFilter === '觀察') matchFilter = s.sentiment === '觀察';
-    else if (currentFilter === '出場') matchFilter = s.sentiment === '出場' || s.sentiment === '減碼';
-    return matchSearch && matchFilter;
-  });
-
-  const total = data.length;
-  const bull  = data.filter(s => s.sentiment === '看好').length;
-  const twCnt = data.filter(s => s.exchange === 'TW').length;
-  const usCnt = data.filter(s => s.exchange === 'US').length;
+function buildGroupsHtml(list) {
   const groups = {};
-  data.forEach(s => { if (!groups[s.sector]) groups[s.sector] = []; groups[s.sector].push(s); });
-
-  document.getElementById('st-total').textContent   = total;
-  document.getElementById('st-bull').textContent    = bull;
-  document.getElementById('st-tw').textContent      = twCnt;
-  document.getElementById('st-us').textContent      = usCnt;
-  document.getElementById('st-sectors').textContent = Object.keys(groups).length;
-
-  if (total === 0) {
-    dash.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:60px">找不到符合條件的標的 🦆</div>';
-    return;
-  }
-
+  list.forEach(s => { if (!groups[s.sector]) groups[s.sector] = []; groups[s.sector].push(s); });
   let html = '';
   for (const [sector, stocks] of Object.entries(groups)) {
     const sentMap = {};
@@ -348,7 +379,7 @@ function renderDashboard() {
       const pd = s.pd || {};
       const tagsHtml = s.tags.map(t => `<span class="tag">#${t}</span>`).join('');
       const trackHtml = getTrackHtml(s);
-      html += `<tr>
+      html += `<tr data-symbol="${s.symbol}">
         <td><div class="stock-cell"><span class="symbol">${s.symbol}</span><span class="sname">${s.name}</span></div></td>
         <td><div class="stock-cell"><span class="sent-badge sent-${s.sentiment}">${s.sentiment}</span><span class="ep-lbl">${s.episode}</span>${trackHtml}</div></td>
         <td class="price-val">${pd.price || '—'}</td>
@@ -361,7 +392,73 @@ function renderDashboard() {
 
     html += `</tbody></table></div>`;
   }
-  dash.innerHTML = html;
+  return html;
+}
+
+let archiveOpen = false;
+
+function renderDashboard() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const dash = document.getElementById('dashboard');
+  const archWrap = document.getElementById('archiveWrapper');
+
+  let data = RAW_DATA.filter(s => {
+    const matchSearch = !q ||
+      s.symbol.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q) ||
+      s.sector.toLowerCase().includes(q) ||
+      s.tags.some(t => t.toLowerCase().includes(q));
+    let matchFilter = true;
+    if (currentFilter === 'TW')   matchFilter = s.exchange === 'TW';
+    else if (currentFilter === 'US')   matchFilter = s.exchange === 'US';
+    else if (currentFilter === '看好') matchFilter = s.sentiment === '看好';
+    else if (currentFilter === '觀察') matchFilter = s.sentiment === '觀察';
+    else if (currentFilter === '出場') matchFilter = s.sentiment === '出場' || s.sentiment === '減碼';
+    return matchSearch && matchFilter;
+  });
+
+  // 出場超過 5 集 → 移入歷史歸檔
+  const isArchived = s => s.sentiment === '出場' && (LATEST_EP_NUM - parseInt(s.episode.replace('EP','')) >= 5);
+  const active = data.filter(s => !isArchived(s));
+  const archived = data.filter(isArchived);
+
+  const groups = {};
+  active.forEach(s => { groups[s.sector] = true; });
+  document.getElementById('st-total').textContent   = active.length;
+  document.getElementById('st-bull').textContent    = active.filter(s => s.sentiment === '看好').length;
+  document.getElementById('st-tw').textContent      = active.filter(s => s.exchange === 'TW').length;
+  document.getElementById('st-us').textContent      = active.filter(s => s.exchange === 'US').length;
+  document.getElementById('st-sectors').textContent = Object.keys(groups).length;
+
+  dash.innerHTML = active.length
+    ? buildGroupsHtml(active)
+    : '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:60px">找不到符合條件的標的 🦆</div>';
+
+  if (archived.length) {
+    archWrap.innerHTML = `<details class="archive-box"${archiveOpen ? ' open' : ''} ontoggle="archiveOpen=this.open">
+      <summary>🗂 歷史歸檔<span class="archive-count">${archived.length} 檔</span><span class="archive-hint">出場超過 5 集的標的，點擊展開</span></summary>
+      <div class="archive-grid">${buildGroupsHtml(archived)}</div>
+    </details>`;
+  } else {
+    archWrap.innerHTML = '';
+  }
+}
+
+function jumpToStock(sym) {
+  let row = document.querySelector(`tr[data-symbol="${CSS.escape(sym)}"]`);
+  if (!row) {
+    document.getElementById('searchInput').value = '';
+    currentFilter = 'all';
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('.chip[data-filter="all"]').classList.add('active');
+    renderDashboard();
+    row = document.querySelector(`tr[data-symbol="${CSS.escape(sym)}"]`);
+  }
+  if (!row) return;
+  const det = row.closest('details');
+  if (det && !det.open) det.open = true;
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.remove('row-flash'); void row.offsetWidth; row.classList.add('row-flash');
 }
 
 function renderTrendPillars() {
@@ -386,7 +483,7 @@ function renderTrendPillars() {
     const epRangeTxt = dur > 0 ? `${p.epStart} → ${p.epEnd}` : p.epStart;
     const stocksHtml = p.stocks.map(sym => {
       const d = RAW_DATA.find(x => x.symbol === sym);
-      return `<span class="pillar-stk">${sym}${d ? ' ' + d.name : ''}</span>`;
+      return `<span class="pillar-stk" onclick="jumpToStock('${sym}')" title="點擊跳至該標的">${sym}${d ? ' ' + d.name : ''}</span>`;
     }).join('');
     const isLast = i === TREND_PILLARS.length - 1;
 
@@ -448,8 +545,32 @@ function renderLatestSummary() {
     </div>`;
 }
 
+function renderOpsLog() {
+  const wrapper = document.getElementById('opsLogWrapper');
+  let html = `<div class="pillars-box">
+    <div class="pillars-header">
+      <div class="pillars-icon" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)">📋</div>
+      <div class="pillars-h-info">
+        <div class="pillars-h-title">主委操作紀錄</div>
+        <div class="pillars-h-sub">節目中提及的實際加減碼動作（依集數倒序）</div>
+      </div>
+    </div>`;
+  OPS_LOG.forEach(g => {
+    html += `<div class="ops-ep-group">
+      <div class="ops-ep-head"><span class="ep-badge-large" style="font-size:11px;padding:3px 10px">${g.ep}</span><span class="ops-date">${g.date}</span></div>
+      <div class="ops-rows">`;
+    g.actions.forEach(a => {
+      html += `<div class="ops-row"><span class="op-badge op-${a.type}">${a.type}</span><span class="ops-stock">${a.stock}</span><span class="ops-note">— ${a.note}</span></div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  wrapper.innerHTML = html;
+}
+
 renderTrendPillars();
 renderLatestSummary();
+renderOpsLog();
 renderDashboard();
 </script>
 </body>
