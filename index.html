@@ -49,7 +49,7 @@
   .stat-lbl { font-size: 11px; color: #666; margin-top: 2px; }
 
   /* ── 儀表板網格 ── */
-  .dashboard { padding: 22px 28px; display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 20px; }
+  .dashboard { padding: 22px 28px; display: grid; grid-template-columns: repeat(auto-fill, minmax(700px, 1fr)); gap: 20px; }
 
   /* ── 板塊卡片 ── */
   .sector-group { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
@@ -60,9 +60,10 @@
   .sum-badge { font-size: 12px; padding: 3px 9px; border-radius: 6px; font-weight: 700; }
 
   /* ── 資料表 ── */
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; }
-  th { font-size: 12px; color: #777; padding: 10px 16px; border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
-  td { padding: 14px 16px; border-bottom: 1px solid #1e1e1e; vertical-align: middle; }
+  th { font-size: 12px; color: #777; padding: 10px 10px; border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; letter-spacing: 0.3px; text-transform: uppercase; }
+  td { padding: 14px 10px; border-bottom: 1px solid #1e1e1e; vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #1f1f1f; }
 
@@ -83,8 +84,8 @@
   .neg { color: #ff5252; }
   .dash { color: #444; font-size: 14px; }
 
-  .tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; max-width: 180px; }
-  .tag { font-size: 11px; background: #222; color: #aaa; padding: 3px 8px; border-radius: 5px; border: 1px solid #333; white-space: nowrap; font-weight: 500; }
+  .tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; max-width: 170px; }
+  .tag { font-size: 11px; background: #222; color: #aaa; padding: 3px 8px; border-radius: 5px; border: 1px solid #333; white-space: normal; line-height: 1.4; font-weight: 500; }
 
   .hidden { display: none; }
 
@@ -148,7 +149,7 @@
   .archive-box[open] summary::before { transform: rotate(90deg); }
   .archive-count { font-size: 12px; background: #2a2a2a; padding: 2px 9px; border-radius: 8px; color: #bbb; }
   .archive-hint { font-size: 11px; color: #555; font-weight: 500; }
-  .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 20px; padding: 0 20px 20px; }
+  .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(700px, 1fr)); gap: 20px; padding: 0 20px 20px; }
 
   /* ── 個股跳轉高亮 ── */
   .pillar-stk { cursor: pointer; transition: all 0.15s; }
@@ -173,7 +174,6 @@
   .rot-out .rot-col-title { color: #ff5252; }
   .rot-in .rot-col-title { color: #00e676; }
   .rot-sector { font-size: 15px; font-weight: 800; color: #fff; margin-top: 10px; line-height: 1.4; }
-  .rot-sector:first-of-type { margin-top: 0; }
   .rot-why { margin: 6px 0 0 18px; font-size: 12px; color: #999; line-height: 1.7; }
   .rot-stocks-lbl { font-size: 11px; color: #666; margin-top: 12px; margin-bottom: 5px; }
   .rot-stocks { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -184,7 +184,24 @@
     .dashboard { grid-template-columns: 1fr; padding: 14px; }
     .archive-wrapper { padding: 0 14px 14px; }
     .archive-grid { grid-template-columns: 1fr; }
-    .controls { max-width: 100%; }
+    .header { padding: 12px 14px; gap: 10px; }
+    .logo { font-size: 18px; }
+    .logo-icon { width: 32px; height: 32px; font-size: 16px; }
+    .controls { order: 3; flex: 1 1 100%; max-width: 100%; }
+    .header-right { margin-left: auto; }
+    .updated-text { font-size: 11px; }
+    .stats-bar { display: grid; grid-template-columns: repeat(5, 1fr); padding: 12px 14px 0; }
+    .stat { padding-right: 0; margin-right: 0; border-right: none; }
+    .stat-val { font-size: 20px; }
+    .sector-header { flex-wrap: wrap; gap: 8px; padding: 12px 14px; }
+    th { padding: 8px 10px; }
+    td { padding: 10px; }
+    .tags-wrap { max-width: 150px; }
+    .pillars-header, .summary-header, .rot-header { padding: 12px 14px; }
+    .pillar-item { padding: 12px 14px; }
+    .market-col { padding: 14px; }
+    .rot-lead { padding: 10px 14px 0; }
+    .rot-foot { padding: 10px 14px; }
     .filters { padding: 10px 14px 0; }
     .summary-wrapper { padding: 14px 14px 0; }
     .rot-grid { flex-direction: column; padding: 12px 14px 14px; }
@@ -356,7 +373,7 @@ function buildGroupsHtml(list) {
     <div class="sector-title">${sector}<span class="sector-count">${stocks.length}</span></div>
     <div class="sector-sent-summary">${sumHtml}</div>
   </div>
-  <table>
+  <div class="tbl-scroll"><table>
     <thead><tr>
       <th>標的</th><th>情緒&集數</th><th>現價</th>
       <th>7D</th><th>30D</th><th>YTD</th>
@@ -379,7 +396,7 @@ function buildGroupsHtml(list) {
       </tr>`;
     });
 
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div></div>`;
   }
   return html;
 }
